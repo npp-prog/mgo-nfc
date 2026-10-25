@@ -216,6 +216,20 @@ npm run test:rules   # Firestore security rules only
 | `rules/` | Firestore security rules | Firestore |
 | `functions/` | function logic against Firestore/Auth, plus end-to-end tests with real ID tokens through the Functions emulator | all |
 
+## Continuous integration
+
+`.github/workflows/ci.yml` runs on every pull request and on pushes to `main`:
+
+| Job | Steps |
+|---|---|
+| **Rules + Cloud Functions** | `npm ci`, typecheck, `npm test` (unit, security rules, functions and end-to-end tests on the Auth/Firestore/Functions emulators) |
+| **Flutter app** | `dart format` check, `flutter analyze`, `flutter test` |
+
+CI needs no secrets: everything runs against the emulators under the
+`demo-mgo-nfc` project, and the workflow only has read access to the repo.
+Deploying to Firebase is a manual step (see below) so production changes
+are always deliberate.
+
 ## Cloud Functions
 
 ### `recordAttendance` (callable)
