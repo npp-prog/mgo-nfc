@@ -5,6 +5,10 @@ import 'features/admin/admin_home_screen.dart';
 import 'features/admin/dashboard_screen.dart';
 import 'features/admin/employee_form_screen.dart';
 import 'features/admin/employees_screen.dart';
+import 'features/admin/export_screen.dart';
+import 'features/admin/settings_screen.dart';
+import 'features/admin/tag_write_screen.dart';
+import 'features/admin/tags_screen.dart';
 import 'features/auth/blocked_screen.dart';
 import 'features/auth/login_screen.dart';
 import 'features/auth/splash_screen.dart';
@@ -23,6 +27,11 @@ abstract final class Routes {
   static const employees = '/admin/employees';
   static const employeeNew = '/admin/employees/new';
   static String employeeEdit(String uid) => '/admin/employees/$uid';
+  static const tags = '/admin/tags';
+  static const tagNew = '/admin/tags/new';
+  static String tagRewrite(String tagId) => '/admin/tags/$tagId/write';
+  static const export = '/admin/export';
+  static const settings = '/admin/settings';
 }
 
 /// Where a session in [status] is allowed to be; null = stay on [location].
@@ -84,6 +93,20 @@ GoRouter buildRouter(SessionController session) => GoRouter(
             ),
           ],
         ),
+        GoRoute(
+          path: 'tags',
+          builder: (_, _) => const TagsScreen(),
+          routes: [
+            GoRoute(path: 'new', builder: (_, _) => const TagWriteScreen()),
+            GoRoute(
+              path: ':tagId/write',
+              builder: (_, state) =>
+                  TagWriteScreen(tagId: state.pathParameters['tagId']),
+            ),
+          ],
+        ),
+        GoRoute(path: 'export', builder: (_, _) => const ExportScreen()),
+        GoRoute(path: 'settings', builder: (_, _) => const SettingsScreen()),
       ],
     ),
   ],

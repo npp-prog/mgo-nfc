@@ -6,6 +6,7 @@ import 'package:nfc_manager/nfc_manager_android.dart';
 import 'package:nfc_manager/nfc_manager_ios.dart';
 
 import 'ndef_uri.dart';
+import 'ntag_programmer.dart';
 
 enum NfcStatus { enabled, disabled, unsupported }
 
@@ -29,6 +30,13 @@ abstract class NfcService {
   /// until [stop] is called. [onError] gets tags that could not be read.
   Future<void> start({
     required void Function(ScannedTag tag) onTag,
+    required void Function(Object error) onError,
+  });
+
+  /// Starts a session for writing: [onTag] gets the UID and a raw command
+  /// channel, and runs while the tag stays in range.
+  Future<void> startWriter({
+    required Future<void> Function(String uid, TagTransport transport) onTag,
     required void Function(Object error) onError,
   });
 
@@ -77,6 +85,37 @@ class NfcManagerService implements NfcService {
   );
 
   @override
+  Future<void> startWriter({
+    required Future<void> Function(String uid, TagTransport transport) onTag,
+    required void Function(Object error) onError,
+  }) => _nfc.startSession(
+    pollingOptions: {NfcPollingOption.iso14443},
+    alertMessageIos: 'Hold the tag near the top of your phone.',
+    onDiscovered: (tag) async {
+      try {
+        if (defaultTargetPlatform == TargetPlatform.iOS) {
+          final mifare = MiFareIos.from(tag);
+          if (mifare == null) {
+            throw const NfcReadException('Unsupported tag type.');
+          }
+          await onTag(formatTagUid(mifare.identifier), _IosTransport(mifare));
+        } else {
+          final android = NfcTagAndroid.from(tag);
+          final nfcA = NfcAAndroid.from(tag);
+          if (android == null || nfcA == null) {
+            throw const NfcReadException(
+              'Unsupported tag type. Use NTAG213/215/216 stickers.',
+            );
+          }
+          await onTag(formatTagUid(android.id), _AndroidTransport(nfcA));
+        }
+      } catch (e) {
+        onError(e);
+      }
+    },
+  );
+
+  @override
   Future<void> stop() async {
     try {
       await _nfc.stopSession();
@@ -105,4 +144,19 @@ class NfcManagerService implements NfcService {
     final message = ndef?.cachedNdefMessage ?? await ndef?.getNdefMessage();
     return ScannedTag(uid: formatTagUid(android.id), url: firstUri(message));
   }
+}
+
+class _AndroidTransport implements TagTransport {
+  _AndroidTransport(this._tag);
+  final NfcAAndroid _tag;
+  @override
+  Future<Uint8List> transceive(Uint8List command) => _tag.transceive(command);
+}
+
+class _IosTransport implements TagTransport {
+  _IosTransport(this._tag);
+  final MiFareIos _tag;
+  @override
+  Future<Uint8List> transceive(Uint8List command) =>
+      _tag.sendMiFareCommand(commandPacket: command);
 }

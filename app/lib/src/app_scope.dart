@@ -4,6 +4,7 @@ import 'nfc/nfc_service.dart';
 import 'services/admin_repository.dart';
 import 'services/attendance_repository.dart';
 import 'services/auth_repository.dart';
+import 'services/file_sharer.dart';
 import 'session/session_controller.dart';
 
 /// Hands app-wide services to the widget tree.
@@ -14,12 +15,14 @@ class AppServices {
     required this.nfc,
     required this.attendance,
     required this.admin,
+    required this.files,
   });
   final AuthRepository auth;
   final SessionController session;
   final NfcService nfc;
   final AttendanceRepository attendance;
   final AdminRepository admin;
+  final FileSharer files;
 }
 
 class AppScope extends InheritedWidget {

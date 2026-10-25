@@ -9,6 +9,8 @@ import 'package:mgo_attendance/src/services/admin_repository.dart';
 import 'package:mgo_attendance/src/session/session_controller.dart';
 import 'package:mgo_attendance/src/models/attendance_record.dart';
 import 'package:mgo_attendance/src/nfc/nfc_service.dart';
+import 'package:mgo_attendance/src/nfc/ntag_programmer.dart';
+import 'package:mgo_attendance/src/services/file_sharer.dart';
 import 'package:mgo_attendance/src/services/attendance_repository.dart';
 import 'package:mgo_attendance/src/services/auth_repository.dart';
 import 'package:mgo_attendance/src/services/user_repository.dart';
@@ -146,11 +148,31 @@ class FakeNfcService implements NfcService {
     _onError = onError;
   }
 
+  Future<void> Function(String, TagTransport)? _onWriterTag;
+  void Function(Object)? _onWriterError;
+  bool get writing => _onWriterTag != null;
+
+  @override
+  Future<void> startWriter({
+    required Future<void> Function(String uid, TagTransport transport) onTag,
+    required void Function(Object error) onError,
+  }) async {
+    starts++;
+    _onWriterTag = onTag;
+    _onWriterError = onError;
+  }
+
+  /// Brings a tag into range of a writer session; completes when the app is done with it.
+  Future<void> present(String uid, TagTransport tag) => _onWriterTag!(uid, tag);
+  void writerError(Object e) => _onWriterError!(e);
+
   @override
   Future<void> stop() async {
     stops++;
     _onTag = null;
     _onError = null;
+    _onWriterTag = null;
+    _onWriterError = null;
   }
 
   void tap(ScannedTag tag) => _onTag!(tag);
@@ -311,6 +333,16 @@ class FakeAdminRepository implements AdminRepository {
   }
 }
 
+class FakeFileSharer implements FileSharer {
+  final shared = <(String, String, String)>[];
+  @override
+  Future<void> shareText({
+    required String filename,
+    required String content,
+    required String mimeType,
+  }) async => shared.add((filename, content, mimeType));
+}
+
 /// AppServices wired with fakes; pass the ones a test needs to inspect.
 AppServices testServices({
   required FakeAuthRepository auth,
@@ -318,10 +350,12 @@ AppServices testServices({
   FakeNfcService? nfc,
   FakeAttendanceRepository? attendance,
   FakeAdminRepository? admin,
+  FakeFileSharer? files,
 }) => AppServices(
   auth: auth,
   session: session,
   nfc: nfc ?? FakeNfcService(),
   attendance: attendance ?? FakeAttendanceRepository(),
   admin: admin ?? FakeAdminRepository(),
+  files: files ?? FakeFileSharer(),
 );

@@ -69,7 +69,8 @@ service cloud.firestore {
         && s.timezone is string && s.timezone.size() > 0
         && s.duplicateWindowSeconds is int
         && s.duplicateWindowSeconds >= 0 && s.duplicateWindowSeconds <= 3600
-        && s.tagUrlBase is string && s.tagUrlBase.matches('^https://.+/tag/$')
+        // Empty until the tag domain is decided.
+        && s.tagUrlBase is string && (s.tagUrlBase == '' || s.tagUrlBase.matches('^https://.+/tag/$'))
         && s.workDays is list
         && s.workDays.hasOnly([1, 2, 3, 4, 5, 6, 7]); // ISO weekdays, 1 = Monday
     }

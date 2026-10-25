@@ -11,6 +11,7 @@ import 'src/nfc/nfc_service.dart';
 import 'src/services/admin_repository.dart';
 import 'src/services/attendance_repository.dart';
 import 'src/services/auth_repository.dart';
+import 'src/services/file_sharer.dart';
 import 'src/services/user_repository.dart';
 import 'src/session/session_controller.dart';
 
@@ -53,6 +54,7 @@ Future<void> main() async {
           functions,
         ),
         admin: FirebaseAdminRepository(FirebaseFirestore.instance, functions),
+        files: ShareSheetFileSharer(),
       ),
       showEmulatorBanner: config.useEmulators,
     ),

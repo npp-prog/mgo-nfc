@@ -11,8 +11,8 @@ class AdminHomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final user = AppScope.of(context).session.user;
-    // (icon, title, subtitle, route or null while not built yet)
-    final sections = <(IconData, String, String, String?)>[
+    // (icon, title, subtitle, route)
+    final sections = <(IconData, String, String, String)>[
       (
         Icons.dashboard_outlined,
         'Today',
@@ -25,13 +25,13 @@ class AdminHomeScreen extends StatelessWidget {
         'Add, edit, deactivate',
         Routes.employees,
       ),
-      (Icons.nfc, 'Tags', 'Write and register NFC tags', null),
-      (Icons.download_outlined, 'Export', 'CSV for payroll', null),
+      (Icons.nfc, 'Tags', 'Write and register NFC tags', Routes.tags),
+      (Icons.download_outlined, 'Export', 'CSV for payroll', Routes.export),
       (
         Icons.settings_outlined,
         'Settings',
-        'Late time, time zone, tag URL',
-        null,
+        'Late time, time zone, tag domain',
+        Routes.settings,
       ),
       (
         Icons.touch_app_outlined,
@@ -57,12 +57,9 @@ class AdminHomeScreen extends StatelessWidget {
               leading: Icon(icon),
               title: Text(title),
               subtitle: Text(subtitle),
-              enabled: route != null,
-              onTap: route == null
-                  ? null
-                  : () => route == Routes.home
-                        ? context.go(route)
-                        : context.push(route),
+              onTap: () => route == Routes.home
+                  ? context.go(route)
+                  : context.push(route),
             ),
         ],
       ),

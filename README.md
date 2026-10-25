@@ -129,16 +129,56 @@ for the emulators; release builds are HTTPS-only.
   filter for `https://<tagHost>/tag/…`) instead of the browser; tap again once it
   is open. Set `tagHost` in `app/android/gradle.properties` to the tag domain.
 
-### Testing check-in with a real tag (before the admin tag writer)
+### Admin features
 
-1. With the free **NFC Tools** app, write a URL record
-   `https://attendance.example.com/tag/main-entrance` to a blank NTAG215, and note
-   the tag's serial number (its UID) shown in NFC Tools.
-2. In the Emulator UI (http://127.0.0.1:4000/firestore) open
-   `tags/main-entrance` and set `uid` to that serial number without colons, in
-   capitals (e.g. `04A1B2C3D4E5F6`).
-3. Sign in as `juan@example.com` and tap the tag: first tap checks in, a tap
-   within 2 minutes is refused, a later tap checks out.
+Admins land on the admin menu (and can also check in/out themselves):
+
+- **Today:** present / late / absent / in-office counts and the people in each,
+  live, for today or any past day. Absent uses the same rules as the payroll
+  export: work days only, active people with *Track attendance* on, from their
+  start date.
+- **Employees:** search, add, edit, deactivate/reactivate, reset password,
+  change role, and switch *Track attendance* off for owners or remote staff
+  (never counted absent; their taps are still recorded).
+- **Tags:** list, rename, disable/enable, and **Add tag / Rewrite or replace**:
+  fill in label (the tag ID is generated from it), hold a blank NTAG213/215/216
+  sticker to the phone and keep it there. The app reads the UID, calls
+  `registerTag`, writes the returned URL and, by default, **locks** the tag.
+  If writing is interrupted, tap again: registration is safe to repeat.
+- **Export:** semi-monthly payroll presets (1–15, 16–end, this and last month)
+  or a custom range; *Daily (payroll)* or *Every tap*; the CSV opens the share
+  sheet (Drive, email, …).
+- **Settings:** tag domain, late time, time zone, repeat-tap window, work days.
+
+#### Tag locking
+
+Locking uses the NTAG password feature: pages from 4 onwards (the URL) can only
+be changed after authenticating; reading stays open, so phones still read the
+URL and UID. The 4-byte password is derived per tag from a **tag passphrase**
+the admin types when writing (SHA-256 of passphrase + UID), so:
+
+- nothing secret is stored in the app, Firestore or this repo;
+- use one passphrase for all office tags and keep it safe — it is needed to
+  rewrite a locked tag (a forgotten passphrase means replacing the sticker);
+- a password sniffed from one tag does not unlock the others.
+
+NTAG passwords are a deterrent against casual rewriting, not strong crypto; the
+server-side UID check and the cloned-tag warning in the logs remain the main
+controls. Tags are not permanently locked, so they can be reused.
+
+### Testing with a real tag
+
+1. Start the emulators, `npm run seed`, run the app (see above) and sign in as
+   `admin@example.com`.
+2. **Tags → Add tag**, label e.g. "Test door", passphrase of 8+ characters,
+   **Write tag**, and hold a blank NTAG215 to the back of the phone until it
+   says *Tag ready*.
+3. Sign out, sign in as `juan@example.com` and tap the tag: first tap checks
+   in, a tap within 2 minutes is refused, a later tap checks out. Check
+   **Today** as the admin.
+
+The seeded tag domain is `attendance.example.com`, which matches the default
+`tagHost` in `app/android/gradle.properties`.
 
 ### Against a real Firebase project
 
@@ -221,16 +261,17 @@ with `role: "admin"`, so a demoted admin loses access immediately. Failures use
 
 | Function | Input | Result / notes |
 |---|---|---|
-| `createEmployee` | `email, password (≥8), displayName, employeeId, role?` | `{ uid }`. Creates the Auth account, `admin` claim and `users` doc. `EMAIL_EXISTS`, `EMPLOYEE_ID_EXISTS` |
-| `updateEmployee` | `uid` + any of `displayName, employeeId, role, active, password` | `{ uid }`. Deactivating disables sign-in; role change, deactivation or password reset signs the user out everywhere. Admins can't demote/deactivate themselves (`SELF_LOCKOUT`) |
+| `createEmployee` | `email, password (≥8), displayName, employeeId, role?, trackAttendance?` | `{ uid }`. Creates the Auth account, `admin` claim and `users` doc. `EMAIL_EXISTS`, `EMPLOYEE_ID_EXISTS` |
+| `updateEmployee` | `uid` + any of `displayName, employeeId, role, active, trackAttendance, password` | `{ uid }`. Deactivating disables sign-in; role change, deactivation or password reset signs the user out everywhere. Admins can't demote/deactivate themselves (`SELF_LOCKOUT`) |
 | `registerTag` | `tagId, tagUid, label, location?, replace?` | `{ tagId, tagUid, url, created }`. The app writes `url` to the tag. Safe to call again for the same tag. One physical tag can't have two IDs (`TAG_UID_TAKEN`); reusing an ID for a new tag needs `replace: true` (`TAG_ID_TAKEN`). Needs `settings.tagUrlBase` (`TAG_URL_BASE_NOT_SET`) |
 | `exportAttendanceCsv` | `from, to` (YYYY-MM-DD, ≤ 366 days), `format?: "daily" \| "raw"` | `{ filename, csv, rowCount }` |
 
 **Daily CSV** (for payroll): one row per employee per day with Status
 `Present` / `Late` / `Absent`, First In, Last Out, Hours Worked (sum of in→out
 pairs, so lunch check-outs are excluded), Taps and Notes (`Missing check-out`).
-An employee is counted absent on a work day with no taps, only between their
-`createdAt` and `deactivatedAt` dates and not after today. Work on non-work days
+An employee is counted absent on a work day with no taps, only if
+`trackAttendance` is on, between their `createdAt` and `deactivatedAt` dates and
+not after today. Work on non-work days
 still appears. **Raw CSV** lists every tap. Times are in `settings.timezone`. Files
 are UTF-8 with BOM so Excel shows names like "María" correctly, and cells that
 start with `= + - @` are prefixed with `'` to block formula injection.
@@ -267,8 +308,11 @@ Functions when an admin changes a user's role.
 
    A new account is created without a password; the script prints a single-use
    password-reset link instead. An existing account is promoted to admin.
-6. Sign in to the app as that admin and set the tag URL base, late time and
-   time zone under Settings.
+6. Sign in to the app as that admin and, under **Settings**, set the tag
+   domain, late time and time zone. Set the same domain as `tagHost` in
+   `app/android/gradle.properties` and rebuild, so tapping a tag with the app
+   closed opens the app.
+7. Write and lock the entrance tags under **Tags → Add tag**.
 
 ## Secrets
 

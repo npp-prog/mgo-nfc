@@ -183,6 +183,9 @@ describe("settings", () => {
   ])("admin cannot save invalid settings: %s", async (_name, patch) => {
     await assertFails(setDoc(doc(admin(), "settings/app"), { ...validSettings, ...patch }));
   });
+  test("admin can save settings before the tag domain is decided", async () => {
+    await assertSucceeds(setDoc(doc(admin(), "settings/app"), { ...validSettings, tagUrlBase: "" }));
+  });
   test("admin cannot write other settings docs", async () => {
     await assertFails(setDoc(doc(admin(), "settings/other"), validSettings));
   });
