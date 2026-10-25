@@ -10,7 +10,8 @@
     "test:rules": "firebase emulators:exec --only firestore --project demo-mgo-nfc \"npm --prefix functions test -- test/rules\"",
     "seed": "npm --prefix functions run seed",
     "bootstrap-admin": "npm --prefix functions run bootstrap-admin --",
-    "adb:reverse": "adb reverse tcp:9099 tcp:9099 && adb reverse tcp:8080 tcp:8080 && adb reverse tcp:5001 tcp:5001"
+    "adb:reverse": "adb reverse tcp:9099 tcp:9099 && adb reverse tcp:8080 tcp:8080 && adb reverse tcp:5001 tcp:5001",
+    "app:web": "cd app && flutter run -d chrome --dart-define=USE_EMULATORS=true"
   },
   "devDependencies": {
     "firebase-tools": "^15.34.1"

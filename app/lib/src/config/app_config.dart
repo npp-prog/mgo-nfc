@@ -1,4 +1,5 @@
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 
 /// Build-time configuration, set with `--dart-define`.
 ///
@@ -6,9 +7,12 @@ import 'package:firebase_core/firebase_core.dart';
 ///   flutter run --dart-define=USE_EMULATORS=true
 ///   flutter run --dart-define=USE_EMULATORS=true --dart-define=EMULATOR_HOST=192.168.1.20
 ///
-/// `10.0.2.2` is the host machine as seen from the Android emulator. For a
-/// physical phone, use your computer's LAN IP (emulators must listen on it,
-/// see README).
+/// In Chrome on your computer (no phone needed):
+///   flutter run -d chrome --dart-define=USE_EMULATORS=true
+///
+/// The default host is `127.0.0.1` on the web and `10.0.2.2` (the host machine
+/// as seen from the Android emulator) on Android. For a USB-connected phone use
+/// `adb reverse` and `127.0.0.1` (see README).
 class AppConfig {
   const AppConfig({
     required this.useEmulators,
@@ -16,17 +20,24 @@ class AppConfig {
     this.functionsRegion = 'asia-southeast1',
   });
 
-  factory AppConfig.fromEnvironment() => const AppConfig(
-    useEmulators: bool.fromEnvironment('USE_EMULATORS'),
-    emulatorHost: String.fromEnvironment(
-      'EMULATOR_HOST',
-      defaultValue: '10.0.2.2',
-    ),
-  );
+  factory AppConfig.fromEnvironment() {
+    const host = String.fromEnvironment('EMULATOR_HOST');
+    return AppConfig(
+      useEmulators: const bool.fromEnvironment('USE_EMULATORS'),
+      emulatorHost: host.isNotEmpty
+          ? host
+          : (kIsWeb ? '127.0.0.1' : '10.0.2.2'),
+    );
+  }
 
   final bool useEmulators;
   final String emulatorHost;
   final String functionsRegion;
+
+  /// Test mode only: offer "simulate tag" buttons so the full flow can be
+  /// tried without NFC hardware. Emulator builds can only reach the local
+  /// demo project, so this can never touch real attendance.
+  bool get simulateNfc => useEmulators;
 
   static const emulatorProjectId = 'demo-mgo-nfc';
   static const authPort = 9099;
@@ -35,10 +46,13 @@ class AppConfig {
 
   /// Placeholder options for the emulator-only demo project. The emulators
   /// accept any API key, so nothing here is a secret.
-  static const emulatorFirebaseOptions = FirebaseOptions(
+  static FirebaseOptions get emulatorFirebaseOptions => FirebaseOptions(
     apiKey: 'demo-api-key',
-    appId: '1:000000000000:android:0000000000000000',
+    appId: kIsWeb
+        ? '1:000000000000:web:0000000000000000'
+        : '1:000000000000:android:0000000000000000',
     messagingSenderId: '000000000000',
     projectId: emulatorProjectId,
+    authDomain: kIsWeb ? '$emulatorProjectId.firebaseapp.com' : null,
   );
 }

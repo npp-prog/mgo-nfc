@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -7,6 +9,7 @@ import '../../models/app_settings.dart';
 import '../../models/tag_info.dart';
 import '../../nfc/nfc_service.dart';
 import '../../nfc/ntag_programmer.dart';
+import '../../nfc/simulated_ntag.dart';
 import '../../router.dart';
 import '../../services/admin_repository.dart';
 
@@ -50,6 +53,12 @@ class _TagWriteScreenState extends State<TagWriteScreen> {
   String? _message;
   TagWriteResult? _result;
 
+  // Test mode: one simulated blank sticker, kept across retries.
+  late final String _simUid =
+      '04${List.generate(6, (_) => Random().nextInt(256).toRadixString(16).padLeft(2, '0')).join().toUpperCase()}';
+  final _simTag = SimulatedNtag(formatted: false);
+  bool _simulated = false;
+
   bool get _isRewrite => widget.tagId != null;
 
   @override
@@ -81,6 +90,14 @@ class _TagWriteScreenState extends State<TagWriteScreen> {
     if (!_formKey.currentState!.validate()) return;
     final status = await _services.nfc.status();
     if (!mounted) return;
+    if (status != NfcStatus.enabled && _services.simulateNfc) {
+      // No NFC here: wait for "Simulate a blank tag".
+      setState(() {
+        _stage = _Stage.waiting;
+        _message = 'Test mode: no NFC here, use "Simulate a blank tag".';
+      });
+      return;
+    }
     if (status != NfcStatus.enabled) {
       setState(() {
         _stage = _Stage.failed;
@@ -344,7 +361,8 @@ class _TagWriteScreenState extends State<TagWriteScreen> {
         Icons.check_circle,
         Colors.green.shade700,
         'Tag ready',
-        '${_label.text.trim()} · ${_result!.type.name}${_result!.locked ? ' · locked' : ''}\n$base${_tagId.text.trim()}',
+        '${_label.text.trim()} · ${_result!.type.name}${_result!.locked ? ' · locked' : ''}'
+            '${_simulated ? ' · simulated' : ''}\n$base${_tagId.text.trim()}',
       ),
       _Stage.failed => (
         Icons.error_outline,
@@ -377,6 +395,19 @@ class _TagWriteScreenState extends State<TagWriteScreen> {
             const SizedBox(height: 8),
             Text(body, textAlign: TextAlign.center),
             const SizedBox(height: 24),
+            if (_services.simulateNfc &&
+                (_stage == _Stage.waiting || _stage == _Stage.failed)) ...[
+              OutlinedButton.icon(
+                key: const Key('tag-simulate'),
+                onPressed: () {
+                  _simulated = true;
+                  _onTag(_simUid, _simTag);
+                },
+                icon: const Icon(Icons.touch_app),
+                label: const Text('Simulate a blank tag'),
+              ),
+              const SizedBox(height: 8),
+            ],
             if (_stage == _Stage.done)
               FilledButton(
                 onPressed: () => context.pop(),

@@ -89,6 +89,35 @@ attendance generated through the real `recordAttendance` logic, and these logins
 
 The seed script refuses to run against anything but a `demo-*` project on the emulators.
 
+## Try it in Chrome (no phone needed)
+
+The quickest way to see everything working. You need Node.js 22, Java 21 and
+Flutter (Android Studio is not needed for this).
+
+```bash
+npm install
+npm install --prefix functions
+npm run emulators        # terminal 1: leave it running
+npm run seed             # terminal 2: demo users, tags and two weeks of history
+npm run app:web          # terminal 2: opens the app in Chrome
+```
+
+Sign in as `juan@example.com` / `password123` (employee) or
+`admin@example.com` / `admin1234` (admin). In this test mode:
+
+- employees get **Simulate tag tap**: pick a registered tag (or a copied tag
+  with the wrong UID, or some other sticker) and the app sends exactly what a
+  real tap would to `recordAttendance`;
+- admins get **Simulate a blank tag** on *Tags → Add tag*, which registers the
+  tag and runs the real tag-writing and locking code against a simulated
+  NTAG215 chip;
+- the CSV export downloads the file.
+
+The simulate buttons only exist in test mode (`USE_EMULATORS=true`), which can
+only reach the local emulators, never real data. The web version doesn't run
+outside test mode yet. Times are shown in the computer's time zone, so use a
+computer set to the office time zone (Asia/Manila).
+
 ## Running the app
 
 The app lives in `app/` (Flutter, package `org.mgocandoniaccounting.mgo_attendance`).
@@ -223,7 +252,7 @@ npm run test:rules   # Firestore security rules only
 | Job | Steps |
 |---|---|
 | **Rules + Cloud Functions** | `npm ci`, typecheck, `npm test` (unit, security rules, functions and end-to-end tests on the Auth/Firestore/Functions emulators) |
-| **Flutter app** | `dart format` check, `flutter analyze`, `flutter test` |
+| **Flutter app** | `dart format` check, `flutter analyze`, `flutter test`, web build |
 
 CI needs no secrets: everything runs against the emulators under the
 `demo-mgo-nfc` project, and the workflow only has read access to the repo.

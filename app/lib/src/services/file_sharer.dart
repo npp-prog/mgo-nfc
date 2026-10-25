@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -20,6 +21,22 @@ class ShareSheetFileSharer implements FileSharer {
     required String content,
     required String mimeType,
   }) async {
+    if (kIsWeb) {
+      // Browsers download the file.
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [
+            XFile.fromData(
+              utf8.encode(content),
+              mimeType: mimeType,
+              name: filename,
+            ),
+          ],
+          fileNameOverrides: [filename],
+        ),
+      );
+      return;
+    }
     // Temporary directory: the OS cleans it up; nothing lingers in app storage.
     final dir = await getTemporaryDirectory();
     final file = File('${dir.path}/$filename');

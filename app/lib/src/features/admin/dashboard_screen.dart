@@ -44,7 +44,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final admin = AppScope.of(context).admin;
     final date = _isoDate.format(_date);
     return Scaffold(
-      appBar: AppBar(title: const Text('Attendance today')),
+      appBar: AppBar(title: const Text('Attendance')),
       body: Column(
         children: [
           Padding(

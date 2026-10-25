@@ -78,3 +78,7 @@ jobs:
       - run: flutter analyze
 
       - run: flutter test
+
+      # The web build is used for trying the app without a phone.
+      - name: Build web (test mode)
+        run: flutter build web --dart-define=USE_EMULATORS=true

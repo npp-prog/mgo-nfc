@@ -1,13 +1,14 @@
 import 'dart:typed_data';
 
-import 'package:mgo_attendance/src/nfc/ntag_programmer.dart';
+import 'ntag_programmer.dart';
 
-/// In-memory NTAG21x that follows the datasheet closely enough to test
+/// In-memory NTAG21x used by tests and by test (emulator) mode, where there is
+/// no NFC hardware. Follows the datasheet closely enough to exercise
 /// [NtagProgrammer]: GET_VERSION, READ (16 bytes), WRITE (ACK/NAK),
 /// PWD_AUTH, write protection from AUTH0, PWD/PACK reading as zeros, OTP
 /// capability container, and halting after a failed authentication.
-class FakeNtag implements TagTransport {
-  FakeNtag({
+class SimulatedNtag implements TagTransport {
+  SimulatedNtag({
     this.type = NtagType.ntag215,
     bool formatted = true,
     this.failAfterWrites,

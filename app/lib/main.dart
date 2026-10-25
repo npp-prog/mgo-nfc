@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'src/app.dart';
@@ -18,6 +19,28 @@ import 'src/session/session_controller.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final config = AppConfig.fromEnvironment();
+
+  if (kIsWeb && !config.useEmulators) {
+    // The web build is for trying the app without a phone. It has no
+    // production Firebase config yet.
+    runApp(
+      const MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: Text(
+                'The web version only runs in test mode.\n'
+                'Start it with --dart-define=USE_EMULATORS=true (see README).',
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    return;
+  }
 
   if (config.useEmulators) {
     await Firebase.initializeApp(options: AppConfig.emulatorFirebaseOptions);
@@ -55,6 +78,7 @@ Future<void> main() async {
         ),
         admin: FirebaseAdminRepository(FirebaseFirestore.instance, functions),
         files: ShareSheetFileSharer(),
+        simulateNfc: config.simulateNfc,
       ),
       showEmulatorBanner: config.useEmulators,
     ),

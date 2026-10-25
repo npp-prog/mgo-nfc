@@ -16,6 +16,7 @@ class AppServices {
     required this.attendance,
     required this.admin,
     required this.files,
+    this.simulateNfc = false,
   });
   final AuthRepository auth;
   final SessionController session;
@@ -23,6 +24,9 @@ class AppServices {
   final AttendanceRepository attendance;
   final AdminRepository admin;
   final FileSharer files;
+
+  /// Test mode: show "simulate tag" buttons (see AppConfig.simulateNfc).
+  final bool simulateNfc;
 }
 
 class AppScope extends InheritedWidget {

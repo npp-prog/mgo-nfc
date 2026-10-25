@@ -17,13 +17,14 @@ import 'package:mgo_attendance/src/services/auth_repository.dart';
 import 'package:mgo_attendance/src/session/session_controller.dart';
 import 'package:nfc_manager/ndef_record.dart';
 
-import '../fakes/fake_ntag.dart';
+import 'package:mgo_attendance/src/nfc/simulated_ntag.dart';
+
 import '../fakes/fakes.dart';
 
 const base = 'https://attendance.example.com/tag/';
 const uid = '04A1B2C3D4E5F6';
 
-String? urlOn(FakeNtag tag) {
+String? urlOn(SimulatedNtag tag) {
   final b = BytesBuilder();
   for (var p = 4; p < tag.type.cfgPage; p++) {
     b.add(tag.page(p));
@@ -162,7 +163,7 @@ void main() {
       expect(find.byKey(const Key('tag-stage-waiting')), findsOneWidget);
       expect(nfc.writing, isTrue);
 
-      final tag = FakeNtag(formatted: false);
+      final tag = SimulatedNtag(formatted: false);
       await nfc.present(uid, tag);
       await tester.pumpAndSettle();
 
@@ -193,12 +194,12 @@ void main() {
         await pumpAdminAt(tester, Routes.tagNew);
         await fillNewTag(tester);
 
-        await nfc.present(uid, FakeNtag(failAfterWrites: 1));
+        await nfc.present(uid, SimulatedNtag(failAfterWrites: 1));
         await tester.pumpAndSettle();
         expect(find.byKey(const Key('tag-stage-failed')), findsOneWidget);
         expect(find.textContaining('tap it again to finish'), findsOneWidget);
 
-        final tag = FakeNtag();
+        final tag = SimulatedNtag();
         await nfc.present(uid, tag);
         await tester.pumpAndSettle();
         expect(find.byKey(const Key('tag-stage-done')), findsOneWidget);
@@ -216,7 +217,7 @@ void main() {
         );
         await pumpAdminAt(tester, Routes.tagNew);
         await fillNewTag(tester);
-        final tag = FakeNtag();
+        final tag = SimulatedNtag();
         await nfc.present(uid, tag);
         await tester.pumpAndSettle();
         expect(
@@ -265,7 +266,7 @@ void main() {
         await tester.tap(find.byKey(const Key('tag-start')));
         await tester.pumpAndSettle();
 
-        final newTag = FakeNtag();
+        final newTag = SimulatedNtag();
         // Present without awaiting: the replace dialog is waiting for the user.
         final presented = nfc.present(uid, newTag);
         await tester.pumpAndSettle();

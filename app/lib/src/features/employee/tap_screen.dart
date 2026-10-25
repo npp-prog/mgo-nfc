@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 
 import '../../app_scope.dart';
 import '../../models/attendance_record.dart';
+import '../../models/tag_info.dart';
 import '../../nfc/nfc_service.dart';
 import '../../router.dart';
 import '../../widgets/sign_out_button.dart';
@@ -183,6 +184,17 @@ class _TapScreenState extends State<TapScreen> with WidgetsBindingObserver {
             if (user != null) _TodayCard(uid: user.uid),
             const SizedBox(height: 32),
             _buildStatus(context),
+            if (_services.simulateNfc) ...[
+              const SizedBox(height: 32),
+              _SimulateTapCard(
+                enabled: _phase != _Phase.sending,
+                onTap: (tag) {
+                  // A simulated tap is a deliberate action: skip the cooldown.
+                  _acceptAfter = DateTime.fromMillisecondsSinceEpoch(0);
+                  _onTag(tag);
+                },
+              ),
+            ],
           ],
         ),
       ),
@@ -196,11 +208,13 @@ class _TapScreenState extends State<TapScreen> with WidgetsBindingObserver {
       case _Phase.checking:
         return const Center(child: CircularProgressIndicator());
       case _Phase.unsupported:
-        return const _StatusBlock(
-          key: Key('tap-unsupported'),
+        return _StatusBlock(
+          key: const Key('tap-unsupported'),
           icon: Icons.portable_wifi_off,
           title: 'This phone has no NFC',
-          message: 'Use a phone with NFC to check in, or ask your admin.',
+          message: _services.simulateNfc
+              ? 'Test mode: use "Simulate tag tap" below.'
+              : 'Use a phone with NFC to check in, or ask your admin.',
         );
       case _Phase.disabled:
         return _StatusBlock(
@@ -353,4 +367,92 @@ class _TodayCard extends StatelessWidget {
       },
     );
   }
+}
+
+/// Test mode only: pretend to tap one of the registered tags.
+class _SimulateTapCard extends StatelessWidget {
+  const _SimulateTapCard({required this.enabled, required this.onTap});
+  final bool enabled;
+  final void Function(ScannedTag tag) onTap;
+
+  static const clonedUid = '04DEADBEEF0001';
+
+  Future<void> _choose(BuildContext context) async {
+    final tags = AppScope.of(context).admin.watchTags();
+    final chosen = await showModalBottomSheet<ScannedTag>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (ctx) => StreamBuilder<List<TagInfo>>(
+        stream: tags,
+        builder: (ctx, snap) {
+          final list = snap.data ?? const <TagInfo>[];
+          return ListView(
+            shrinkWrap: true,
+            children: [
+              const ListTile(title: Text('Tap which tag?')),
+              if (!snap.hasData)
+                const Center(child: CircularProgressIndicator()),
+              if (snap.hasData && list.isEmpty)
+                const ListTile(title: Text('No tags registered yet.')),
+              for (final t in list) ...[
+                ListTile(
+                  key: Key('sim-tag-${t.tagId}'),
+                  leading: const Icon(Icons.nfc),
+                  title: Text(t.label),
+                  subtitle: Text(t.active ? t.location : 'Disabled'),
+                  onTap: () =>
+                      Navigator.pop(ctx, ScannedTag(uid: t.uid, url: t.url)),
+                ),
+              ],
+              if (list.isNotEmpty)
+                ListTile(
+                  key: const Key('sim-cloned'),
+                  leading: const Icon(Icons.warning_amber),
+                  title: Text('Copied "${list.first.label}" tag (wrong UID)'),
+                  subtitle: const Text(
+                    'Shows what happens with a cloned sticker',
+                  ),
+                  onTap: () => Navigator.pop(
+                    ctx,
+                    ScannedTag(uid: clonedUid, url: list.first.url),
+                  ),
+                ),
+              ListTile(
+                key: const Key('sim-foreign'),
+                leading: const Icon(Icons.help_outline),
+                title: const Text('Some other NFC sticker'),
+                onTap: () =>
+                    Navigator.pop(ctx, const ScannedTag(uid: '04111111111111')),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+    if (chosen != null) onTap(chosen);
+  }
+
+  @override
+  Widget build(BuildContext context) => Card(
+    color: Theme.of(context).colorScheme.secondaryContainer,
+    child: Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          const Text(
+            'Test mode (no NFC needed)',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            key: const Key('simulate-tap'),
+            onPressed: enabled ? () => _choose(context) : null,
+            icon: const Icon(Icons.touch_app),
+            label: const Text('Simulate tag tap'),
+          ),
+        ],
+      ),
+    ),
+  );
 }

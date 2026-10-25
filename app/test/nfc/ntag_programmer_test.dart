@@ -5,13 +5,13 @@ import 'package:mgo_attendance/src/nfc/ndef_uri.dart';
 import 'package:mgo_attendance/src/nfc/ntag_programmer.dart';
 import 'package:nfc_manager/ndef_record.dart';
 
-import '../fakes/fake_ntag.dart';
+import 'package:mgo_attendance/src/nfc/simulated_ntag.dart';
 
 const url = 'https://attendance.example.com/tag/main-entrance';
 const uid = '04A1B2C3D4E5F6';
 
 /// Reads the NDEF URL back from the fake tag's memory like a phone would.
-String? readUrl(FakeNtag tag) {
+String? readUrl(SimulatedNtag tag) {
   final bytes = BytesBuilder();
   for (var p = 4; p < tag.type.cfgPage; p++) {
     bytes.add(tag.page(p));
@@ -27,7 +27,7 @@ String? readUrl(FakeNtag tag) {
 
 void main() {
   test('writes the URL to a factory NTAG215 without locking', () async {
-    final tag = FakeNtag();
+    final tag = SimulatedNtag();
     final res = await NtagProgrammer(tag).program(url: url);
     expect(res.type, NtagType.ntag215);
     expect(res.locked, isFalse);
@@ -36,7 +36,7 @@ void main() {
   });
 
   test('formats a blank tag (empty capability container)', () async {
-    final tag = FakeNtag(formatted: false);
+    final tag = SimulatedNtag(formatted: false);
     await NtagProgrammer(tag).program(url: url);
     expect(tag.page(3), [0xE1, 0x10, 0x3E, 0x00]);
     expect(readUrl(tag), url);
@@ -44,7 +44,7 @@ void main() {
 
   test('supports NTAG213 and NTAG216 layouts', () async {
     for (final type in [NtagType.ntag213, NtagType.ntag216]) {
-      final tag = FakeNtag(type: type, formatted: false);
+      final tag = SimulatedNtag(type: type, formatted: false);
       final res = await NtagProgrammer(tag).program(
         url: url,
         password: TagPassword.derive('pass', uid),
@@ -59,7 +59,7 @@ void main() {
   test(
     'locks: afterwards writes need the password, reads still work',
     () async {
-      final tag = FakeNtag();
+      final tag = SimulatedNtag();
       final pw = TagPassword.derive('office secret', uid);
       final res = await NtagProgrammer(tag)
           .program(url: url, password: pw, lock: true);
@@ -84,7 +84,7 @@ void main() {
   );
 
   test('rewrites a locked tag with the right passphrase', () async {
-    final tag = FakeNtag();
+    final tag = SimulatedNtag();
     final pw = TagPassword.derive('office secret', uid);
     await NtagProgrammer(tag).program(url: url, password: pw, lock: true);
     tag.reconnect();
@@ -99,7 +99,7 @@ void main() {
   test(
     'wrong passphrase or none on a locked tag is refused, tag unchanged',
     () async {
-      final tag = FakeNtag();
+      final tag = SimulatedNtag();
       await NtagProgrammer(tag).program(
         url: url,
         password: TagPassword.derive('right', uid),
@@ -148,7 +148,7 @@ void main() {
   test(
     'tag pulled away mid-write gives a retryable error and is not locked',
     () async {
-      final tag = FakeNtag(failAfterWrites: 2);
+      final tag = SimulatedNtag(failAfterWrites: 2);
       await expectLater(
         NtagProgrammer(
           tag,
@@ -181,7 +181,7 @@ void main() {
       throwsA(isA<TagWriteException>()),
     );
 
-    final small = FakeNtag(type: NtagType.ntag213);
+    final small = SimulatedNtag(type: NtagType.ntag213);
     await expectLater(
       NtagProgrammer(small)
           .program(url: 'https://attendance.example.com/tag/${'x' * 200}'),
@@ -197,7 +197,7 @@ void main() {
 
   test('lock without a password is a programming error', () {
     expect(
-      () => NtagProgrammer(FakeNtag()).program(url: url, lock: true),
+      () => NtagProgrammer(SimulatedNtag()).program(url: url, lock: true),
       throwsArgumentError,
     );
   });

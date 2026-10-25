@@ -351,6 +351,7 @@ AppServices testServices({
   FakeAttendanceRepository? attendance,
   FakeAdminRepository? admin,
   FakeFileSharer? files,
+  bool simulateNfc = false,
 }) => AppServices(
   auth: auth,
   session: session,
@@ -358,4 +359,5 @@ AppServices testServices({
   attendance: attendance ?? FakeAttendanceRepository(),
   admin: admin ?? FakeAdminRepository(),
   files: files ?? FakeFileSharer(),
+  simulateNfc: simulateNfc,
 );
