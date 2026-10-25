@@ -33,7 +33,12 @@ void main() {
     addTearDown(session.dispose);
     await tester.pumpWidget(
       MgoAttendanceApp(
-        services: AppServices(auth: auth, session: session),
+        services: AppServices(
+          auth: auth,
+          session: session,
+          nfc: FakeNfcService(),
+          attendance: FakeAttendanceRepository(),
+        ),
       ),
     );
     await tester.pumpAndSettle();

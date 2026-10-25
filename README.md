@@ -117,6 +117,29 @@ NFC needs a **physical Android phone**; the Android emulator has no NFC.
 The app shows an **EMULATOR** ribbon in this mode. Debug builds allow plain HTTP
 for the emulators; release builds are HTTPS-only.
 
+### Employee features
+
+- **Check in / out:** open the app and hold the phone near the entrance tag. On
+  Android the app listens while it is on screen; it reads the tag UID and URL and
+  calls `recordAttendance`, which decides in vs out. Holding the phone on the tag
+  doesn't send repeats (3 s cooldown in the app, 2 min on the server).
+- **Today card** and **My history** (grouped by day, with first in, last out,
+  hours worked and late badge) update live from Firestore.
+- Tapping an office tag while the app is closed opens the app (Android intent
+  filter for `https://<tagHost>/tag/…`) instead of the browser; tap again once it
+  is open. Set `tagHost` in `app/android/gradle.properties` to the tag domain.
+
+### Testing check-in with a real tag (before the admin tag writer)
+
+1. With the free **NFC Tools** app, write a URL record
+   `https://attendance.example.com/tag/main-entrance` to a blank NTAG215, and note
+   the tag's serial number (its UID) shown in NFC Tools.
+2. In the Emulator UI (http://127.0.0.1:4000/firestore) open
+   `tags/main-entrance` and set `uid` to that serial number without colons, in
+   capitals (e.g. `04A1B2C3D4E5F6`).
+3. Sign in as `juan@example.com` and tap the tag: first tap checks in, a tap
+   within 2 minutes is refused, a later tap checks out.
+
 ### Against a real Firebase project
 
 Put `google-services.json` (Firebase console → Project settings → Android app

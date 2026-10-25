@@ -34,6 +34,8 @@ android {
         // flag during build.
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        manifestPlaceholders["tagHost"] =
+            (project.findProperty("tagHost") as String?) ?: "attendance.example.com"
     }
 
     buildTypes {

@@ -5,7 +5,8 @@ import 'features/admin/admin_home_screen.dart';
 import 'features/auth/blocked_screen.dart';
 import 'features/auth/login_screen.dart';
 import 'features/auth/splash_screen.dart';
-import 'features/employee/employee_home_screen.dart';
+import 'features/employee/history_screen.dart';
+import 'features/employee/tap_screen.dart';
 import 'session/session_controller.dart';
 
 abstract final class Routes {
@@ -13,6 +14,7 @@ abstract final class Routes {
   static const login = '/login';
   static const blocked = '/blocked';
   static const home = '/home';
+  static const history = '/home/history';
   static const admin = '/admin';
 }
 
@@ -51,7 +53,13 @@ GoRouter buildRouter(SessionController session) => GoRouter(
     GoRoute(path: Routes.splash, builder: (_, _) => const SplashScreen()),
     GoRoute(path: Routes.login, builder: (_, _) => const LoginScreen()),
     GoRoute(path: Routes.blocked, builder: (_, _) => const BlockedScreen()),
-    GoRoute(path: Routes.home, builder: (_, _) => const EmployeeHomeScreen()),
+    GoRoute(
+      path: Routes.home,
+      builder: (_, _) => const TapScreen(),
+      routes: [
+        GoRoute(path: 'history', builder: (_, _) => const HistoryScreen()),
+      ],
+    ),
     GoRoute(path: Routes.admin, builder: (_, _) => const AdminHomeScreen()),
   ],
 );

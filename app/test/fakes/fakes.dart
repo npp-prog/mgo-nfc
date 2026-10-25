@@ -1,6 +1,9 @@
 import 'dart:async';
 
 import 'package:mgo_attendance/src/models/app_user.dart';
+import 'package:mgo_attendance/src/models/attendance_record.dart';
+import 'package:mgo_attendance/src/nfc/nfc_service.dart';
+import 'package:mgo_attendance/src/services/attendance_repository.dart';
 import 'package:mgo_attendance/src/services/auth_repository.dart';
 import 'package:mgo_attendance/src/services/user_repository.dart';
 
@@ -110,3 +113,81 @@ AppUser user({
   role: role,
   active: active,
 );
+
+class FakeNfcService implements NfcService {
+  NfcStatus current = NfcStatus.enabled;
+  void Function(ScannedTag)? _onTag;
+  void Function(Object)? _onError;
+  int starts = 0;
+  int stops = 0;
+
+  bool get listening => _onTag != null;
+
+  @override
+  Future<NfcStatus> status() async => current;
+
+  @override
+  Future<void> start({
+    required void Function(ScannedTag tag) onTag,
+    required void Function(Object error) onError,
+  }) async {
+    starts++;
+    _onTag = onTag;
+    _onError = onError;
+  }
+
+  @override
+  Future<void> stop() async {
+    stops++;
+    _onTag = null;
+    _onError = null;
+  }
+
+  void tap(ScannedTag tag) => _onTag!(tag);
+  void readError(Object e) => _onError!(e);
+}
+
+class FakeAttendanceRepository implements AttendanceRepository {
+  final _records = _Live<List<AttendanceRecord>>()..set(const []);
+  final sent = <ScannedTag>[];
+
+  /// Next responses to recordTap, in order: a TapResult or an exception.
+  final responses = <Object>[];
+  Completer<void>? gate;
+
+  void setRecords(List<AttendanceRecord> records) => _records.set(records);
+
+  @override
+  Future<TapResult> recordTap(ScannedTag tag) async {
+    sent.add(tag);
+    if (gate != null) await gate!.future;
+    final next = responses.removeAt(0);
+    if (next is TapResult) return next;
+    throw next;
+  }
+
+  @override
+  Stream<List<AttendanceRecord>> watchMyRecords(
+    String uid, {
+    int limit = 200,
+  }) => _records.stream();
+}
+
+AttendanceRecord rec(
+  String date,
+  int hour,
+  int minute,
+  TapType type, {
+  bool late = false,
+  String tagId = 'main-entrance',
+}) {
+  final d = DateTime.parse(date);
+  return AttendanceRecord(
+    id: '$date-$hour-$minute',
+    type: type,
+    timestamp: DateTime(d.year, d.month, d.day, hour, minute),
+    date: date,
+    tagId: tagId,
+    late: late,
+  );
+}

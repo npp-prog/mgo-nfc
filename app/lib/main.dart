@@ -7,6 +7,8 @@ import 'package:flutter/material.dart';
 import 'src/app.dart';
 import 'src/app_scope.dart';
 import 'src/config/app_config.dart';
+import 'src/nfc/nfc_service.dart';
+import 'src/services/attendance_repository.dart';
 import 'src/services/auth_repository.dart';
 import 'src/services/user_repository.dart';
 import 'src/session/session_controller.dart';
@@ -38,7 +40,15 @@ Future<void> main() async {
 
   runApp(
     MgoAttendanceApp(
-      services: AppServices(auth: auth, session: session),
+      services: AppServices(
+        auth: auth,
+        session: session,
+        nfc: NfcManagerService(),
+        attendance: FirebaseAttendanceRepository(
+          FirebaseFirestore.instance,
+          FirebaseFunctions.instanceFor(region: config.functionsRegion),
+        ),
+      ),
       showEmulatorBanner: config.useEmulators,
     ),
   );

@@ -39,6 +39,8 @@ dependencies:
   cloud_firestore: ^7.1.0
   cloud_functions: ^7.0.1
   go_router: ^18.1.1
+  nfc_manager: ^4.2.1
+  intl: ^0.20.3
 
 dev_dependencies:
   flutter_test:

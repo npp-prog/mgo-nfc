@@ -1,13 +1,22 @@
 import 'package:flutter/widgets.dart';
 
+import 'nfc/nfc_service.dart';
+import 'services/attendance_repository.dart';
 import 'services/auth_repository.dart';
 import 'session/session_controller.dart';
 
 /// Hands app-wide services to the widget tree.
 class AppServices {
-  const AppServices({required this.auth, required this.session});
+  const AppServices({
+    required this.auth,
+    required this.session,
+    required this.nfc,
+    required this.attendance,
+  });
   final AuthRepository auth;
   final SessionController session;
+  final NfcService nfc;
+  final AttendanceRepository attendance;
 }
 
 class AppScope extends InheritedWidget {
