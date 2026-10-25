@@ -106,6 +106,14 @@ test("absences respect work days, hire date, deactivation date and today", async
   expect(order).toEqual([...order].sort());
 });
 
+test("users with trackAttendance=false are never absent but their taps still appear", async () => {
+  await db.doc("users/ana").update({ trackAttendance: false });
+  await db.doc("users/ben").update({ trackAttendance: false });
+  const rows = parse((await exportAttendanceCore(db, { from: "2026-10-26", to: "2026-11-02" }, NOW)).csv);
+  expect(rows.filter((r) => r.Name === "Ben").map((r) => `${r.Date}:${r.Status}`)).toEqual(["2026-10-31:Present"]);
+  expect(rows.filter((r) => r.Name === "Ana").map((r) => r.Status)).toEqual(["Present", "Late", "Present"]);
+});
+
 test("neutralizes spreadsheet formulas in user-controlled fields", async () => {
   const res = await exportAttendanceCore(db, { from: "2026-10-29", to: "2026-10-29" }, NOW);
   expect(res.csv).toContain("'=HYPERLINK(evil)");

@@ -31,10 +31,11 @@ const TZ = "Asia/Manila";
 const TAG_BASE = "https://attendance.example.com/tag/";
 
 const people = [
-  { email: "admin@example.com", password: "admin1234", displayName: "Office Admin", employeeId: "ADM-001", role: "admin" },
-  { email: "juan@example.com", password: "password123", displayName: "Juan dela Cruz", employeeId: "EMP-001", role: "employee" },
-  { email: "maria@example.com", password: "password123", displayName: "María Santos", employeeId: "EMP-002", role: "employee" },
-  { email: "pedro@example.com", password: "password123", displayName: "Pedro Reyes", employeeId: "EMP-003", role: "employee" },
+  // The office admin doesn't tap in, so they are never counted absent.
+  { email: "admin@example.com", password: "admin1234", displayName: "Office Admin", employeeId: "ADM-001", role: "admin", trackAttendance: false },
+  { email: "juan@example.com", password: "password123", displayName: "Juan dela Cruz", employeeId: "EMP-001", role: "employee", trackAttendance: true },
+  { email: "maria@example.com", password: "password123", displayName: "María Santos", employeeId: "EMP-002", role: "employee", trackAttendance: true },
+  { email: "pedro@example.com", password: "password123", displayName: "Pedro Reyes", employeeId: "EMP-003", role: "employee", trackAttendance: true },
 ] as const;
 
 const tags = [

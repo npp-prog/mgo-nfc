@@ -1,6 +1,12 @@
 import 'dart:async';
 
+import 'package:mgo_attendance/src/app_scope.dart';
+import 'package:mgo_attendance/src/models/app_settings.dart';
 import 'package:mgo_attendance/src/models/app_user.dart';
+import 'package:mgo_attendance/src/models/day_summary.dart';
+import 'package:mgo_attendance/src/models/tag_info.dart';
+import 'package:mgo_attendance/src/services/admin_repository.dart';
+import 'package:mgo_attendance/src/session/session_controller.dart';
 import 'package:mgo_attendance/src/models/attendance_record.dart';
 import 'package:mgo_attendance/src/nfc/nfc_service.dart';
 import 'package:mgo_attendance/src/services/attendance_repository.dart';
@@ -105,6 +111,8 @@ AppUser user({
   UserRole role = UserRole.employee,
   bool active = true,
   String name = 'Juan dela Cruz',
+  bool trackAttendance = true,
+  DateTime? createdAt,
 }) => AppUser(
   uid: uid,
   email: '$uid@example.com',
@@ -112,6 +120,8 @@ AppUser user({
   employeeId: 'EMP-$uid',
   role: role,
   active: active,
+  trackAttendance: trackAttendance,
+  createdAt: createdAt,
 );
 
 class FakeNfcService implements NfcService {
@@ -191,3 +201,127 @@ AttendanceRecord rec(
     late: late,
   );
 }
+
+class FakeAdminRepository implements AdminRepository {
+  final users = _Live<List<AppUser>>()..set(const []);
+  final tags = _Live<List<TagInfo>>()..set(const []);
+  final settings = _Live<AppSettings>()..set(const AppSettings());
+  final _days = <String, _Live<List<DaySummary>>>{};
+
+  final created = <EmployeeDraft>[];
+  final updated = <(String, EmployeeDraft)>[];
+  final registered = <Map<String, Object?>>[];
+  final tagUpdates = <(String, String, String, bool)>[];
+  final exports = <(String, String, bool)>[];
+  final savedSettings = <AppSettings>[];
+
+  /// If set, the next mutating call throws it (then it is cleared).
+  Object? nextError;
+  CsvExport exportResult = const CsvExport(
+    filename: 'a.csv',
+    csv: 'x',
+    rowCount: 0,
+  );
+  RegisteredTag Function(String tagId)? registerResult;
+
+  _Live<List<DaySummary>> _day(String date) =>
+      _days.putIfAbsent(date, () => _Live<List<DaySummary>>()..set(const []));
+  void setDay(String date, List<DaySummary> s) => _day(date).set(s);
+
+  Future<void> _maybeFail() async {
+    final e = nextError;
+    nextError = null;
+    if (e != null) throw e;
+  }
+
+  @override
+  Stream<List<AppUser>> watchUsers() => users.stream();
+  @override
+  Stream<List<DaySummary>> watchDaySummaries(String date) =>
+      _day(date).stream();
+  @override
+  Stream<List<TagInfo>> watchTags() => tags.stream();
+  @override
+  Stream<AppSettings> watchSettings() => settings.stream();
+
+  @override
+  Future<String> createEmployee(EmployeeDraft draft) async {
+    await _maybeFail();
+    created.add(draft);
+    return 'new-uid';
+  }
+
+  @override
+  Future<void> updateEmployee(String uid, EmployeeDraft draft) async {
+    await _maybeFail();
+    updated.add((uid, draft));
+  }
+
+  @override
+  Future<RegisteredTag> registerTag({
+    required String tagId,
+    required String tagUid,
+    required String label,
+    required String location,
+    bool replace = false,
+  }) async {
+    await _maybeFail();
+    registered.add({
+      'tagId': tagId,
+      'tagUid': tagUid,
+      'label': label,
+      'location': location,
+      'replace': replace,
+    });
+    return registerResult?.call(tagId) ??
+        RegisteredTag(
+          tagId: tagId,
+          url: '${settings.value.tagUrlBase}$tagId',
+          created: true,
+        );
+  }
+
+  @override
+  Future<void> updateTag(
+    String tagId, {
+    required String label,
+    required String location,
+    required bool active,
+  }) async {
+    await _maybeFail();
+    tagUpdates.add((tagId, label, location, active));
+  }
+
+  @override
+  Future<CsvExport> exportCsv({
+    required String from,
+    required String to,
+    required bool raw,
+  }) async {
+    await _maybeFail();
+    exports.add((from, to, raw));
+    return exportResult;
+  }
+
+  @override
+  Future<void> saveSettings(AppSettings s) async {
+    await _maybeFail();
+    savedSettings.add(s);
+    settings.set(s);
+  }
+}
+
+/// AppServices wired with fakes; pass the ones a test needs to inspect.
+AppServices testServices({
+  required FakeAuthRepository auth,
+  required SessionController session,
+  FakeNfcService? nfc,
+  FakeAttendanceRepository? attendance,
+  FakeAdminRepository? admin,
+}) => AppServices(
+  auth: auth,
+  session: session,
+  nfc: nfc ?? FakeNfcService(),
+  attendance: attendance ?? FakeAttendanceRepository(),
+  admin: admin ?? FakeAdminRepository(),
+);

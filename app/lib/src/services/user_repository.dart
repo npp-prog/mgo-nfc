@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../models/app_user.dart';
+import 'firestore_convert.dart';
 
 abstract class UserRepository {
   /// Emits the profile, or null if `users/{uid}` does not exist.
@@ -15,5 +16,9 @@ class FirestoreUserRepository implements UserRepository {
   Stream<AppUser?> watchUser(String uid) => _db
       .doc('users/$uid')
       .snapshots()
-      .map((s) => s.exists ? AppUser.fromMap(s.id, s.data()!) : null);
+      .map(
+        (s) => s.exists
+            ? AppUser.fromMap(s.id, firestoreToPlain(s.data()!))
+            : null,
+      );
 }

@@ -6,7 +6,8 @@ enum UserRole {
       value == 'admin' ? UserRole.admin : UserRole.employee;
 }
 
-/// Profile from `users/{uid}`.
+/// Profile from `users/{uid}`. Timestamps must already be converted to
+/// [DateTime] (see `firestoreToPlain`).
 class AppUser {
   const AppUser({
     required this.uid,
@@ -16,6 +17,7 @@ class AppUser {
     required this.role,
     required this.active,
     this.trackAttendance = true,
+    this.createdAt,
   });
 
   factory AppUser.fromMap(String uid, Map<String, dynamic> data) => AppUser(
@@ -26,6 +28,7 @@ class AppUser {
     role: UserRole.parse(data['role']),
     active: data['active'] == true,
     trackAttendance: data['trackAttendance'] != false,
+    createdAt: data['createdAt'] as DateTime?,
   );
 
   final String uid;
@@ -37,6 +40,7 @@ class AppUser {
 
   /// When false the user is left out of absence counts (e.g. owners, remote staff).
   final bool trackAttendance;
+  final DateTime? createdAt;
 
   bool get isAdmin => role == UserRole.admin;
 

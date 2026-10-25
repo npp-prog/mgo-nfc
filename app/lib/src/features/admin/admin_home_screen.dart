@@ -5,21 +5,41 @@ import '../../app_scope.dart';
 import '../../router.dart';
 import '../../widgets/sign_out_button.dart';
 
-/// Admin landing page. Each section is implemented in step 7.
 class AdminHomeScreen extends StatelessWidget {
   const AdminHomeScreen({super.key});
-
-  static const _sections = [
-    (Icons.dashboard_outlined, 'Today', 'Present, late and absent'),
-    (Icons.people_outline, 'Employees', 'Add, edit, deactivate'),
-    (Icons.nfc, 'Tags', 'Write and register NFC tags'),
-    (Icons.download_outlined, 'Export', 'CSV for payroll'),
-    (Icons.settings_outlined, 'Settings', 'Late time, time zone, tag URL'),
-  ];
 
   @override
   Widget build(BuildContext context) {
     final user = AppScope.of(context).session.user;
+    // (icon, title, subtitle, route or null while not built yet)
+    final sections = <(IconData, String, String, String?)>[
+      (
+        Icons.dashboard_outlined,
+        'Today',
+        'Present, late and absent',
+        Routes.dashboard,
+      ),
+      (
+        Icons.people_outline,
+        'Employees',
+        'Add, edit, deactivate',
+        Routes.employees,
+      ),
+      (Icons.nfc, 'Tags', 'Write and register NFC tags', null),
+      (Icons.download_outlined, 'Export', 'CSV for payroll', null),
+      (
+        Icons.settings_outlined,
+        'Settings',
+        'Late time, time zone, tag URL',
+        null,
+      ),
+      (
+        Icons.touch_app_outlined,
+        'Check in / out',
+        'Your own attendance',
+        Routes.home,
+      ),
+    ];
     return Scaffold(
       appBar: AppBar(
         title: const Text('Admin'),
@@ -31,19 +51,18 @@ class AdminHomeScreen extends StatelessWidget {
             title: Text(user?.name ?? ''),
             subtitle: Text('${user?.email ?? ''} · Admin'),
           ),
-          ListTile(
-            leading: const Icon(Icons.nfc),
-            title: const Text('Check in / out'),
-            subtitle: const Text('Your own attendance'),
-            onTap: () => context.go(Routes.home),
-          ),
           const Divider(),
-          for (final (icon, title, subtitle) in _sections)
+          for (final (icon, title, subtitle, route) in sections)
             ListTile(
               leading: Icon(icon),
               title: Text(title),
               subtitle: Text(subtitle),
-              enabled: false,
+              enabled: route != null,
+              onTap: route == null
+                  ? null
+                  : () => route == Routes.home
+                        ? context.go(route)
+                        : context.push(route),
             ),
         ],
       ),

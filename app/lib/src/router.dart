@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import 'features/admin/admin_home_screen.dart';
+import 'features/admin/dashboard_screen.dart';
+import 'features/admin/employee_form_screen.dart';
+import 'features/admin/employees_screen.dart';
 import 'features/auth/blocked_screen.dart';
 import 'features/auth/login_screen.dart';
 import 'features/auth/splash_screen.dart';
@@ -16,6 +19,10 @@ abstract final class Routes {
   static const home = '/home';
   static const history = '/home/history';
   static const admin = '/admin';
+  static const dashboard = '/admin/today';
+  static const employees = '/admin/employees';
+  static const employeeNew = '/admin/employees/new';
+  static String employeeEdit(String uid) => '/admin/employees/$uid';
 }
 
 /// Where a session in [status] is allowed to be; null = stay on [location].
@@ -60,6 +67,24 @@ GoRouter buildRouter(SessionController session) => GoRouter(
         GoRoute(path: 'history', builder: (_, _) => const HistoryScreen()),
       ],
     ),
-    GoRoute(path: Routes.admin, builder: (_, _) => const AdminHomeScreen()),
+    GoRoute(
+      path: Routes.admin,
+      builder: (_, _) => const AdminHomeScreen(),
+      routes: [
+        GoRoute(path: 'today', builder: (_, _) => const DashboardScreen()),
+        GoRoute(
+          path: 'employees',
+          builder: (_, _) => const EmployeesScreen(),
+          routes: [
+            GoRoute(path: 'new', builder: (_, _) => const EmployeeFormScreen()),
+            GoRoute(
+              path: ':uid',
+              builder: (_, state) =>
+                  EmployeeFormScreen(uid: state.pathParameters['uid']),
+            ),
+          ],
+        ),
+      ],
+    ),
   ],
 );

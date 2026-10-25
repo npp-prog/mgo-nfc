@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mgo_attendance/src/app.dart';
-import 'package:mgo_attendance/src/app_scope.dart';
 import 'package:mgo_attendance/src/models/app_user.dart';
 import 'package:mgo_attendance/src/session/session_controller.dart';
 
@@ -33,12 +32,7 @@ void main() {
     addTearDown(session.dispose);
     await tester.pumpWidget(
       MgoAttendanceApp(
-        services: AppServices(
-          auth: auth,
-          session: session,
-          nfc: FakeNfcService(),
-          attendance: FakeAttendanceRepository(),
-        ),
+        services: testServices(auth: auth, session: session),
       ),
     );
     await tester.pumpAndSettle();

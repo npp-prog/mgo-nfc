@@ -18,6 +18,8 @@ export const createEmployeeSchema = z.object({
   displayName,
   employeeId,
   role: role.default("employee"),
+  /** false = never counted absent (owners, remote staff); taps are still recorded. */
+  trackAttendance: z.boolean().default(true),
 });
 export type CreateEmployeeInput = z.input<typeof createEmployeeSchema>;
 
@@ -28,6 +30,7 @@ export const updateEmployeeSchema = z
     employeeId: employeeId.optional(),
     role: role.optional(),
     active: z.boolean().optional(),
+    trackAttendance: z.boolean().optional(),
     password: password.optional(),
   })
   .refine((v) => Object.keys(v).length > 1, "nothing to update");
@@ -72,6 +75,7 @@ export async function createEmployeeCore(
       employeeId: input.employeeId,
       role: input.role,
       active: true,
+      trackAttendance: input.trackAttendance,
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
       createdBy: actorUid,
@@ -116,7 +120,7 @@ export async function updateEmployeeCore(
   if (roleChanged) await auth.setCustomUserClaims(input.uid, { admin: input.role === "admin" });
 
   const docUpdate: Record<string, unknown> = { updatedAt: FieldValue.serverTimestamp(), updatedBy: actorUid };
-  for (const k of ["displayName", "employeeId", "role", "active"] as const) {
+  for (const k of ["displayName", "employeeId", "role", "active", "trackAttendance"] as const) {
     if (input[k] !== undefined) docUpdate[k] = input[k];
   }
   if (input.active === false && current.active !== false) docUpdate.deactivatedAt = FieldValue.serverTimestamp();

@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/intl.dart';
 import 'package:mgo_attendance/src/app.dart';
-import 'package:mgo_attendance/src/app_scope.dart';
 import 'package:mgo_attendance/src/models/attendance_record.dart';
 import 'package:mgo_attendance/src/nfc/nfc_service.dart';
 import 'package:mgo_attendance/src/services/auth_repository.dart';
@@ -37,7 +36,7 @@ void main() {
     auth.emit(const AuthIdentity(uid: 'u1', email: 'u1@example.com'));
     await tester.pumpWidget(
       MgoAttendanceApp(
-        services: AppServices(
+        services: testServices(
           auth: auth,
           session: session,
           nfc: nfc,

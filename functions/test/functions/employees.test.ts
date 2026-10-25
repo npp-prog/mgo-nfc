@@ -33,9 +33,17 @@ describe("createEmployee", () => {
       employeeId: "EMP-001",
       role: "employee",
       active: true,
+      trackAttendance: true,
       createdBy: "boss",
     });
     expect(doc.createdAt).toBeDefined();
+  });
+
+  test("trackAttendance can be turned off at creation and toggled later", async () => {
+    const { uid } = await createEmployeeCore(auth, db, "boss", { ...base, trackAttendance: false });
+    expect((await db.doc(`users/${uid}`).get()).get("trackAttendance")).toBe(false);
+    await updateEmployeeCore(auth, db, "boss", { uid, trackAttendance: true });
+    expect((await db.doc(`users/${uid}`).get()).get("trackAttendance")).toBe(true);
   });
 
   test("admin role sets the admin claim", async () => {

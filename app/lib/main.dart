@@ -8,6 +8,7 @@ import 'src/app.dart';
 import 'src/app_scope.dart';
 import 'src/config/app_config.dart';
 import 'src/nfc/nfc_service.dart';
+import 'src/services/admin_repository.dart';
 import 'src/services/attendance_repository.dart';
 import 'src/services/auth_repository.dart';
 import 'src/services/user_repository.dart';
@@ -33,6 +34,9 @@ Future<void> main() async {
   }
 
   final auth = FirebaseAuthRepository(FirebaseAuth.instance);
+  final functions = FirebaseFunctions.instanceFor(
+    region: config.functionsRegion,
+  );
   final session = SessionController(
     auth: auth,
     users: FirestoreUserRepository(FirebaseFirestore.instance),
@@ -46,8 +50,9 @@ Future<void> main() async {
         nfc: NfcManagerService(),
         attendance: FirebaseAttendanceRepository(
           FirebaseFirestore.instance,
-          FirebaseFunctions.instanceFor(region: config.functionsRegion),
+          functions,
         ),
+        admin: FirebaseAdminRepository(FirebaseFirestore.instance, functions),
       ),
       showEmulatorBanner: config.useEmulators,
     ),

@@ -41,6 +41,7 @@ interface UserInfo {
   email: string;
   employeeId: string;
   active: boolean;
+  trackAttendance: boolean;
   createdDate?: string;
   deactivatedDate?: string;
 }
@@ -110,12 +111,13 @@ export async function exportAttendanceCore(db: Firestore, rawInput: unknown, now
       email: u.email ?? "",
       employeeId: u.employeeId ?? "",
       active: u.active === true,
+      trackAttendance: u.trackAttendance !== false,
       createdDate: localDate(u.createdAt),
       deactivatedDate: localDate(u.deactivatedAt),
     });
   }
   const userOf = (uid: string, fallbackName = ""): UserInfo =>
-    users.get(uid) ?? { uid, name: fallbackName, email: "", employeeId: "", active: false };
+    users.get(uid) ?? { uid, name: fallbackName, email: "", employeeId: "", active: false, trackAttendance: false };
 
   const taps: Tap[] = tapsSnap.docs.map((d) => {
     const r = d.data();
@@ -176,6 +178,7 @@ export async function exportAttendanceCore(db: Firestore, rawInput: unknown, now
         continue;
       }
       const expected =
+        u.trackAttendance &&
         settings.workDays.includes(weekday) &&
         date <= today &&
         (!u.createdDate || date >= u.createdDate) &&

@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 
 import 'nfc/nfc_service.dart';
+import 'services/admin_repository.dart';
 import 'services/attendance_repository.dart';
 import 'services/auth_repository.dart';
 import 'session/session_controller.dart';
@@ -12,11 +13,13 @@ class AppServices {
     required this.session,
     required this.nfc,
     required this.attendance,
+    required this.admin,
   });
   final AuthRepository auth;
   final SessionController session;
   final NfcService nfc;
   final AttendanceRepository attendance;
+  final AdminRepository admin;
 }
 
 class AppScope extends InheritedWidget {
