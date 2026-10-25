@@ -1,0 +1,14 @@
+{
+  "name": "mgo-nfc",
+  "private": true,
+  "description": "NFC office attendance: Flutter app + Firebase backend",
+  "scripts": {
+    "emulators": "firebase emulators:start --project demo-mgo-nfc",
+    "emulators:persist": "firebase emulators:start --project demo-mgo-nfc --import=./emulator-data --export-on-exit",
+    "build:functions": "npm --prefix functions run build",
+    "test:functions": "npm --prefix functions test"
+  },
+  "devDependencies": {
+    "firebase-tools": "^15.34.1"
+  }
+}

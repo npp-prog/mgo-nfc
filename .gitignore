@@ -1,0 +1,59 @@
+# ---- Secrets & environment-specific Firebase config (NEVER commit) ----
+.env
+.env.*
+!.env.example
+*.pem
+*.p12
+*.jks
+*.keystore
+key.properties
+service-account*.json
+*-service-account.json
+*firebase-adminsdk*.json
+.firebaserc
+.runtimeconfig.json
+google-services.json
+GoogleService-Info.plist
+app/lib/firebase_options.dart
+app/firebase.json
+
+# ---- Firebase emulator / CLI ----
+.firebase/
+firebase-debug.log*
+firestore-debug.log*
+ui-debug.log*
+database-debug.log*
+pubsub-debug.log*
+emulator-data/
+
+# ---- Node / Functions ----
+node_modules/
+functions/lib/
+coverage/
+*.tsbuildinfo
+npm-debug.log*
+
+# ---- Flutter / Dart ----
+app/.dart_tool/
+app/.flutter-plugins
+app/.flutter-plugins-dependencies
+app/.pub-cache/
+app/.pub/
+app/build/
+app/android/.gradle/
+app/android/local.properties
+app/android/app/debug/
+app/android/app/release/
+app/android/captures/
+app/ios/Pods/
+app/ios/.symlinks/
+app/ios/Flutter/Generated.xcconfig
+app/ios/Flutter/flutter_export_environment.sh
+app/ios/Runner/GeneratedPluginRegistrant.*
+
+# ---- OS / IDE ----
+.DS_Store
+.idea/
+.vscode/
+*.iml
+*.swp
