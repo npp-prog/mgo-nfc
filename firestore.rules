@@ -1,8 +1,79 @@
 rules_version = '2';
 
-// Placeholder: deny everything. Real rules are added in step 2.
+// Access model
+// - Employees read only their own user doc and attendance.
+// - Admins (custom claim `admin: true`, set by Cloud Functions) read everything,
+//   edit tag metadata and app settings.
+// - attendance / attendanceDays / users are written only by Cloud Functions
+//   (Admin SDK bypasses these rules).
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return signedIn() && request.auth.token.admin == true;
+    }
+
+    function isSelf(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    // Only the listed keys may change in this update.
+    function onlyChanges(keys) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys);
+    }
+
+    // Role changes must go through Cloud Functions so the auth claim stays in sync.
+    match /users/{uid} {
+      allow read: if isSelf(uid) || isAdmin();
+      allow write: if false;
+    }
+
+    // Tags are created via the `registerTag` function, which enforces UID
+    // uniqueness. Admins may edit descriptive fields or deactivate a tag.
+    match /tags/{tagId} {
+      allow read: if signedIn();
+      allow create, delete: if false;
+      allow update: if isAdmin()
+        && onlyChanges(['label', 'location', 'active'])
+        && request.resource.data.label is string
+        && request.resource.data.location is string
+        && request.resource.data.active is bool;
+    }
+
+    match /attendance/{recordId} {
+      allow read: if isAdmin()
+        || (signedIn() && resource.data.userId == request.auth.uid);
+      allow write: if false;
+    }
+
+    match /attendanceDays/{dayId} {
+      allow read: if isAdmin()
+        || (signedIn() && resource.data.userId == request.auth.uid);
+      allow write: if false;
+    }
+
+    match /settings/{settingsId} {
+      allow read: if signedIn();
+      allow write: if isAdmin() && settingsId == 'app' && validSettings(request.resource.data);
+    }
+
+    function validSettings(s) {
+      return s.keys().hasOnly(['lateTime', 'timezone', 'duplicateWindowSeconds', 'tagUrlBase', 'workDays'])
+        && s.keys().hasAll(['lateTime', 'timezone', 'duplicateWindowSeconds', 'tagUrlBase', 'workDays'])
+        && s.lateTime is string
+        && s.lateTime.matches('^([01][0-9]|2[0-3]):[0-5][0-9]$')
+        && s.timezone is string && s.timezone.size() > 0
+        && s.duplicateWindowSeconds is int
+        && s.duplicateWindowSeconds >= 0 && s.duplicateWindowSeconds <= 3600
+        && s.tagUrlBase is string && s.tagUrlBase.matches('^https://.+/tag/$')
+        && s.workDays is list
+        && s.workDays.hasOnly([1, 2, 3, 4, 5, 6, 7]); // ISO weekdays, 1 = Monday
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

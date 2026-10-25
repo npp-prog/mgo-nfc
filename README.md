@@ -81,6 +81,30 @@ curl -X POST -H 'Content-Type: application/json' -d '{"data":{}}' \
 # {"result":{"ok":true,"uid":null}}
 ```
 
+## Tests
+
+All backend tests run against the emulators, which `emulators:exec` starts and
+stops automatically:
+
+```bash
+npm test             # everything (Auth + Firestore emulators)
+npm run test:rules   # Firestore security rules only
+```
+
+Rules tests live in `functions/test/rules/`.
+
+## Security rules summary
+
+| Collection | Employee | Admin | Client writes |
+|---|---|---|---|
+| `users` | own doc | all | none (Cloud Functions only) |
+| `tags` | read | read; edit `label`/`location`/`active` | create/delete via `registerTag` only |
+| `attendance`, `attendanceDays` | own records | all | none (Cloud Functions only) |
+| `settings/app` | read | read + validated write | admin only |
+
+Admin status comes from the custom auth claim `admin: true`, set by Cloud
+Functions when an admin changes a user's role.
+
 ## Connecting to a real Firebase project
 
 1. Create a Firebase project, enable **Authentication → Email/Password** and
