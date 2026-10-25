@@ -53,7 +53,7 @@ scripts/                emulator seed scripts
 
 - Node.js 22 and npm
 - Java 21+ (required by the Firestore emulator)
-- Flutter SDK (stable) + Android Studio / Android SDK
+- Flutter SDK (stable, 3.47+ / Dart 3.13+) + Android Studio / Android SDK
 - An Android phone with NFC for real tag testing
 - A Firebase project on the **Blaze** plan (required for Cloud Functions)
 
@@ -88,6 +88,52 @@ attendance generated through the real `recordAttendance` logic, and these logins
 | employee | juan@example.com, maria@example.com, pedro@example.com | password123 |
 
 The seed script refuses to run against anything but a `demo-*` project on the emulators.
+
+## Running the app
+
+The app lives in `app/` (Flutter, package `org.mgocandoniaccounting.mgo_attendance`).
+NFC needs a **physical Android phone**; the Android emulator has no NFC.
+
+### Against the local emulators (no Firebase project needed)
+
+1. Start the backend: `npm run emulators`, then `npm run seed`.
+2. Connect the phone by USB with USB debugging on, then forward the emulator
+   ports to it so `127.0.0.1` on the phone reaches your computer:
+
+   ```bash
+   npm run adb:reverse
+   ```
+
+3. Run the app:
+
+   ```bash
+   cd app
+   flutter run --dart-define=USE_EMULATORS=true --dart-define=EMULATOR_HOST=127.0.0.1
+   ```
+
+   On the Android emulator (no NFC, but fine for login and admin screens) omit
+   `EMULATOR_HOST`; it defaults to `10.0.2.2`, the emulator's alias for your computer.
+
+The app shows an **EMULATOR** ribbon in this mode. Debug builds allow plain HTTP
+for the emulators; release builds are HTTPS-only.
+
+### Against a real Firebase project
+
+Put `google-services.json` (Firebase console → Project settings → Android app
+`org.mgocandoniaccounting.mgo_attendance`) in `app/android/app/`, then
+`flutter run`. The file is git-ignored; the Gradle build only applies the
+Google Services plugin when it is present.
+
+### App tests
+
+```bash
+cd app
+flutter analyze
+flutter test
+```
+
+Widget and unit tests use in-memory fakes for Auth and Firestore, so they need
+no emulator or device.
 
 ## Tests
 
@@ -185,8 +231,8 @@ Functions when an admin changes a user's role.
 1. Create a Firebase project, enable **Authentication → Email/Password** and
    **Firestore** (pick a location near the office, e.g. `asia-southeast1`).
 2. `cp .firebaserc.example .firebaserc` and set your project ID.
-3. In `app/`, run `flutterfire configure` — this generates
-   `lib/firebase_options.dart` and `android/app/google-services.json`.
+3. Add an Android app with package `org.mgocandoniaccounting.mgo_attendance`
+   and download its `google-services.json` to `app/android/app/`.
 4. Deploy: `npx firebase deploy --only firestore,functions`.
 5. Create the first admin (the admin functions need an existing admin):
 
