@@ -44,3 +44,33 @@ export function isValidTimeZone(timeZone: string): boolean {
     return false;
   }
 }
+
+/** "HH:MM" wall-clock time of an instant in the given time zone. */
+export function formatLocalHHMM(instant: Date, timeZone: string): string {
+  return new Intl.DateTimeFormat("en-GB", { timeZone, hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(
+    instant,
+  );
+}
+
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+/** True for a real calendar date in YYYY-MM-DD form. */
+export function isIsoDate(value: string): boolean {
+  if (!DATE_RE.test(value)) return false;
+  const d = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === value;
+}
+
+/** Inclusive list of calendar dates between two YYYY-MM-DD strings. */
+export function datesBetween(from: string, to: string): string[] {
+  const out: string[] = [];
+  for (let d = new Date(`${from}T00:00:00Z`); d.toISOString().slice(0, 10) <= to; d.setUTCDate(d.getUTCDate() + 1)) {
+    out.push(d.toISOString().slice(0, 10));
+  }
+  return out;
+}
+
+/** ISO weekday (1 = Monday) of a YYYY-MM-DD calendar date. */
+export function isoWeekdayOf(date: string): number {
+  return new Date(`${date}T00:00:00Z`).getUTCDay() || 7;
+}

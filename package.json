@@ -7,7 +7,9 @@
     "emulators:persist": "firebase emulators:start --project demo-mgo-nfc --import=./emulator-data --export-on-exit",
     "build:functions": "npm --prefix functions run build",
     "test": "npm run build:functions && firebase emulators:exec --only auth,firestore,functions --project demo-mgo-nfc \"npm --prefix functions test\"",
-    "test:rules": "firebase emulators:exec --only firestore --project demo-mgo-nfc \"npm --prefix functions test -- test/rules\""
+    "test:rules": "firebase emulators:exec --only firestore --project demo-mgo-nfc \"npm --prefix functions test -- test/rules\"",
+    "seed": "npm --prefix functions run seed",
+    "bootstrap-admin": "npm --prefix functions run bootstrap-admin --"
   },
   "devDependencies": {
     "firebase-tools": "^15.34.1"

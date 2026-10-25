@@ -73,6 +73,22 @@ touches a real Firebase project. Open http://127.0.0.1:4000 for the Emulator UI.
 Use `npm run emulators:persist` to keep data in `./emulator-data` (git-ignored)
 between runs.
 
+With the emulators running, load demo data in a second terminal:
+
+```bash
+npm run seed
+```
+
+This creates settings, two tags (`main-entrance`, `back-door`), two weeks of
+attendance generated through the real `recordAttendance` logic, and these logins:
+
+| Role | Email | Password |
+|---|---|---|
+| admin | admin@example.com | admin1234 |
+| employee | juan@example.com, maria@example.com, pedro@example.com | password123 |
+
+The seed script refuses to run against anything but a `demo-*` project on the emulators.
+
 ## Tests
 
 All backend tests run against the emulators, which `emulators:exec` starts and
@@ -87,9 +103,9 @@ npm run test:rules   # Firestore security rules only
 
 | Folder | What | Needs emulator |
 |---|---|---|
-| `unit/` | pure helpers (time zone, tag UID/URL parsing) | no |
+| `unit/` | pure helpers (time zone, tag UID/URL parsing, CSV) | no |
 | `rules/` | Firestore security rules | Firestore |
-| `functions/` | function logic against Firestore, plus an end-to-end test through Auth + Functions | all |
+| `functions/` | function logic against Firestore/Auth, plus end-to-end tests with real ID tokens through the Functions emulator | all |
 
 ## Cloud Functions
 
@@ -109,7 +125,8 @@ Rules, all checked in one Firestore transaction:
   day is rejected
 - type is `out` if the user's last tap that day was `in`, otherwise `in`
 - the day's first check-in is `late` if the office-local time is after `lateTime`,
-  compared to the minute (with 08:00, 08:00:59 is on time and 08:01 is late)
+  compared to the minute (with 08:00, 08:00:59 is on time and 08:01 is late);
+  taps on days not in `workDays` are never late
 - "that day" is the calendar day in `settings.timezone`
 
 The timestamp comes from the Cloud Functions server clock, never from the phone.
@@ -126,6 +143,30 @@ Errors are `HttpsError`s with `details.reason` for the app to show a friendly me
 | `DUPLICATE_TAP` (+ `retryAfterSeconds`, `lastType`) | failed-precondition |
 
 UID mismatches are logged as warnings because they may indicate a cloned tag.
+
+### Admin functions (callable)
+
+All require the caller to have the `admin` claim **and** an active `users` doc
+with `role: "admin"`, so a demoted admin loses access immediately. Failures use
+`details.reason` as above (`NOT_ADMIN`, `INVALID_INPUT` with `details.issues`, …).
+
+| Function | Input | Result / notes |
+|---|---|---|
+| `createEmployee` | `email, password (≥8), displayName, employeeId, role?` | `{ uid }`. Creates the Auth account, `admin` claim and `users` doc. `EMAIL_EXISTS`, `EMPLOYEE_ID_EXISTS` |
+| `updateEmployee` | `uid` + any of `displayName, employeeId, role, active, password` | `{ uid }`. Deactivating disables sign-in; role change, deactivation or password reset signs the user out everywhere. Admins can't demote/deactivate themselves (`SELF_LOCKOUT`) |
+| `registerTag` | `tagId, tagUid, label, location?, replace?` | `{ tagId, tagUid, url, created }`. The app writes `url` to the tag. Safe to call again for the same tag. One physical tag can't have two IDs (`TAG_UID_TAKEN`); reusing an ID for a new tag needs `replace: true` (`TAG_ID_TAKEN`). Needs `settings.tagUrlBase` (`TAG_URL_BASE_NOT_SET`) |
+| `exportAttendanceCsv` | `from, to` (YYYY-MM-DD, ≤ 366 days), `format?: "daily" \| "raw"` | `{ filename, csv, rowCount }` |
+
+**Daily CSV** (for payroll): one row per employee per day with Status
+`Present` / `Late` / `Absent`, First In, Last Out, Hours Worked (sum of in→out
+pairs, so lunch check-outs are excluded), Taps and Notes (`Missing check-out`).
+An employee is counted absent on a work day with no taps, only between their
+`createdAt` and `deactivatedAt` dates and not after today. Work on non-work days
+still appears. **Raw CSV** lists every tap. Times are in `settings.timezone`. Files
+are UTF-8 with BOM so Excel shows names like "María" correctly, and cells that
+start with `= + - @` are prefixed with `'` to block formula injection.
+
+Employees are deactivated, never deleted, so their attendance history stays intact.
 
 ## Security rules summary
 
@@ -147,6 +188,18 @@ Functions when an admin changes a user's role.
 3. In `app/`, run `flutterfire configure` — this generates
    `lib/firebase_options.dart` and `android/app/google-services.json`.
 4. Deploy: `npx firebase deploy --only firestore,functions`.
+5. Create the first admin (the admin functions need an existing admin):
+
+   ```bash
+   gcloud auth application-default login
+   npm run bootstrap-admin -- --project <project-id> --email you@company.com \
+     --name "Your Name" --employee-id ADM-001
+   ```
+
+   A new account is created without a password; the script prints a single-use
+   password-reset link instead. An existing account is promoted to admin.
+6. Sign in to the app as that admin and set the tag URL base, late time and
+   time zone under Settings.
 
 ## Secrets
 

@@ -38,5 +38,8 @@ export async function getSettings(db: Firestore): Promise<AppSettings> {
   if (!Number.isInteger(s.duplicateWindowSeconds) || s.duplicateWindowSeconds < 0) {
     s.duplicateWindowSeconds = DEFAULT_SETTINGS.duplicateWindowSeconds;
   }
+  if (!Array.isArray(s.workDays) || !s.workDays.every((d) => Number.isInteger(d) && d >= 1 && d <= 7)) {
+    s.workDays = DEFAULT_SETTINGS.workDays;
+  }
   return s;
 }

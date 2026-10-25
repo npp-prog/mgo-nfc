@@ -33,3 +33,27 @@ test("isValidTimeZone", () => {
   expect(isValidTimeZone("Asia/Manila")).toBe(true);
   expect(isValidTimeZone("Mars/Base")).toBe(false);
 });
+
+import { datesBetween, formatLocalHHMM, isIsoDate, isoWeekdayOf } from "../../src/lib/time";
+
+test("formatLocalHHMM", () => {
+  expect(formatLocalHHMM(new Date("2026-10-26T00:05:00Z"), "Asia/Manila")).toBe("08:05");
+  expect(formatLocalHHMM(new Date("2026-10-26T16:00:00Z"), "Asia/Manila")).toBe("00:00");
+});
+
+test("isIsoDate", () => {
+  expect(isIsoDate("2026-02-28")).toBe(true);
+  expect(isIsoDate("2026-02-29")).toBe(false);
+  expect(isIsoDate("2026-2-1")).toBe(false);
+  expect(isIsoDate("yesterday")).toBe(false);
+});
+
+test("datesBetween is inclusive and crosses months", () => {
+  expect(datesBetween("2026-10-30", "2026-11-02")).toEqual(["2026-10-30", "2026-10-31", "2026-11-01", "2026-11-02"]);
+  expect(datesBetween("2026-10-30", "2026-10-30")).toEqual(["2026-10-30"]);
+});
+
+test("isoWeekdayOf", () => {
+  expect(isoWeekdayOf("2026-10-26")).toBe(1);
+  expect(isoWeekdayOf("2026-11-01")).toBe(7);
+});

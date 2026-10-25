@@ -77,7 +77,9 @@ export async function recordTap(
 
     const type: "in" | "out" = day?.lastType === "in" ? "out" : "in";
     const isFirstIn = type === "in" && !day?.firstIn;
-    const late = isFirstIn && local.minutes > parseHHMM(settings.lateTime);
+    // Lateness only applies on scheduled work days (weekend overtime is never late).
+    const late =
+      isFirstIn && settings.workDays.includes(local.isoWeekday) && local.minutes > parseHHMM(settings.lateTime);
     const userName = (user.displayName as string | undefined) ?? (user.email as string | undefined) ?? "";
 
     tx.create(recordRef, {

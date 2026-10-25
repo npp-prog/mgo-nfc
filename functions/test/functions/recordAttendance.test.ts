@@ -1,7 +1,7 @@
-import { HttpsError } from "firebase-functions/v2/https";
 import { Firestore, Timestamp } from "firebase-admin/firestore";
 import { recordTap } from "../../src/attendance/recordAttendance";
 import { adminDb, clearFirestore, manila } from "../helpers/emulator";
+import { expectReason } from "../helpers/errors";
 
 const UID = "04A1B2C3D4E5F6";
 const URL_MAIN = "https://att.example.com/tag/main";
@@ -30,19 +30,6 @@ beforeEach(async () => {
 
 const tap = (at: Date, input: Record<string, unknown> = { tagUid: UID, tagUrl: URL_MAIN }, user = "alice") =>
   recordTap(db, user, input, at);
-
-async function expectReason(p: Promise<unknown>, code: string, reason: string) {
-  const err = await p.then(
-    () => {
-      throw new Error("expected rejection");
-    },
-    (e: unknown) => e,
-  );
-  expect(err).toBeInstanceOf(HttpsError);
-  expect((err as HttpsError).code).toBe(code);
-  expect((err as HttpsError).details).toMatchObject({ reason });
-  return err as HttpsError;
-}
 
 async function attendanceFor(user: string) {
   const snap = await db.collection("attendance").where("userId", "==", user).get();
@@ -108,6 +95,11 @@ describe("late threshold", () => {
   test("uses the configured lateTime", async () => {
     await db.doc("settings/app").update({ lateTime: "09:00" });
     expect((await tap(manila(DAY, "08:30:00"))).late).toBe(false);
+  });
+
+  test("is never late on a non-work day", async () => {
+    // 2026-10-31 is a Saturday; work days are Mon-Fri
+    expect((await tap(manila("2026-10-31", "10:00:00"))).late).toBe(false);
   });
 
   test("falls back to defaults when settings doc is missing", async () => {

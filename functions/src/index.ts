@@ -7,3 +7,6 @@ initializeApp();
 setGlobalOptions({ region: "asia-southeast1", maxInstances: 10 });
 
 export { recordAttendance } from "./attendance/recordAttendance";
+export { createEmployee, updateEmployee } from "./admin/employees";
+export { registerTag } from "./admin/tags";
+export { exportAttendanceCsv } from "./admin/exportAttendance";
