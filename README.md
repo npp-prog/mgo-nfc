@@ -73,14 +73,6 @@ touches a real Firebase project. Open http://127.0.0.1:4000 for the Emulator UI.
 Use `npm run emulators:persist` to keep data in `./emulator-data` (git-ignored)
 between runs.
 
-Quick check that functions are wired up:
-
-```bash
-curl -X POST -H 'Content-Type: application/json' -d '{"data":{}}' \
-  http://127.0.0.1:5001/demo-mgo-nfc/asia-southeast1/ping
-# {"result":{"ok":true,"uid":null}}
-```
-
 ## Tests
 
 All backend tests run against the emulators, which `emulators:exec` starts and
@@ -91,7 +83,49 @@ npm test             # everything (Auth + Firestore emulators)
 npm run test:rules   # Firestore security rules only
 ```
 
-Rules tests live in `functions/test/rules/`.
+`npm test` builds the functions first. Test layout in `functions/test/`:
+
+| Folder | What | Needs emulator |
+|---|---|---|
+| `unit/` | pure helpers (time zone, tag UID/URL parsing) | no |
+| `rules/` | Firestore security rules | Firestore |
+| `functions/` | function logic against Firestore, plus an end-to-end test through Auth + Functions | all |
+
+## Cloud Functions
+
+### `recordAttendance` (callable)
+
+Request: `{ tagUid: "04A1B2C3D4E5F6", tagUrl: "https://<domain>/tag/<tagId>" }`
+(UID separators/case are ignored).
+
+Success: `{ recordId, type: "in" | "out", timestamp, date, late, tagId, tagLabel }`
+
+Rules, all checked in one Firestore transaction:
+
+- caller must be signed in, have a `users/{uid}` doc and be `active`
+- the URL must be `https://<host>/tag/<tagId>`; if `settings.tagUrlBase` is set, the host must match
+- `tags/{tagId}` must exist, be `active`, and its `uid` must equal the scanned UID
+- a tap within `duplicateWindowSeconds` (default 120) of the user's previous tap that
+  day is rejected
+- type is `out` if the user's last tap that day was `in`, otherwise `in`
+- the day's first check-in is `late` if the office-local time is after `lateTime`,
+  compared to the minute (with 08:00, 08:00:59 is on time and 08:01 is late)
+- "that day" is the calendar day in `settings.timezone`
+
+The timestamp comes from the Cloud Functions server clock, never from the phone.
+
+Errors are `HttpsError`s with `details.reason` for the app to show a friendly message:
+
+| reason | code |
+|---|---|
+| `UNAUTHENTICATED` | unauthenticated |
+| `INVALID_INPUT`, `INVALID_TAG_URL` | invalid-argument |
+| `USER_NOT_FOUND`, `USER_INACTIVE`, `TAG_UID_MISMATCH` | permission-denied |
+| `TAG_NOT_REGISTERED` | not-found |
+| `TAG_INACTIVE` | failed-precondition |
+| `DUPLICATE_TAP` (+ `retryAfterSeconds`, `lastType`) | failed-precondition |
+
+UID mismatches are logged as warnings because they may indicate a cloned tag.
 
 ## Security rules summary
 
